@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>매니저 전용 페이지 (등급 B)</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script defer src="./auth.js"></script>
+    <script defer src="./app.js"></script>
+    <script>
+      window.addEventListener("DOMContentLoaded", () => {
+        window.App.initManagerPage();
+      });
+    </script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <div class="brand">학교 포털</div>
+        <nav class="nav">
+          <a href="./index.html">메인(C)</a>
+          <a href="./anonymous.html">익명 건의함</a>
+          <a href="./manager.html" data-min-role="B">매니저 전용(B)</a>
+          <a href="./admin.html" data-min-role="A">관리자 전용(A)</a>
+        </nav>
+        <div>
+          <span data-user-info class="muted"></span>
+          <button type="button" class="btn ghost" data-logout>로그아웃</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container page-wrap">
+      <h1>매니저 전용 페이지</h1>
+      <p>
+        페이지 등급: <span class="role-badge">B (매니저 이상)</span>
+      </p>
+
+      <section class="grid">
+        <article class="card">
+          <h3>비공개 익명 게시판 접근</h3>
+          <p>등록된 익명 건의 수: <strong id="manager-suggest-count">0</strong>건</p>
+          <p>건의 내용을 조회/수정/삭제하려면 아래 버튼으로 이동하세요.</p>
+          <a href="./anonymous.html" class="btn">건의함 관리하기</a>
+        </article>
+
+        <article class="card">
+          <h3>매니저 권한 안내</h3>
+          <ul class="notice-list">
+            <li>모든 C 페이지 접근 가능</li>
+            <li>익명 건의 내용 조회/수정/삭제 가능</li>
+            <li>관리자(A) 전용 페이지는 접근 불가</li>
+          </ul>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

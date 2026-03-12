@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>익명 건의함</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script defer src="./auth.js"></script>
+    <script defer src="./app.js"></script>
+    <script>
+      window.addEventListener("DOMContentLoaded", () => {
+        window.App.initSuggestionsPage();
+      });
+    </script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <div class="brand">학교 포털</div>
+        <nav class="nav">
+          <a href="./index.html">메인(C)</a>
+          <a href="./anonymous.html">익명 건의함</a>
+          <a href="./manager.html" data-min-role="B">매니저 전용(B)</a>
+          <a href="./admin.html" data-min-role="A">관리자 전용(A)</a>
+        </nav>
+        <div>
+          <span data-user-info class="muted"></span>
+          <button type="button" class="btn ghost" data-logout>로그아웃</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container page-wrap">
+      <h1>익명 건의함</h1>
+      <p>
+        페이지 등급: <span class="role-badge">C</span>
+        (단, 건의 내용 조회/관리: B 이상)
+      </p>
+
+      <section class="card">
+        <h3>익명 건의 등록</h3>
+        <form id="suggest-form">
+          <label>
+            제목(선택)
+            <input id="suggest-title" class="input" maxlength="120" />
+          </label>
+          <label>
+            내용(필수)
+            <textarea id="suggest-content" rows="6" required></textarea>
+          </label>
+          <button type="submit" class="btn">익명 건의 등록</button>
+          <p id="suggest-message" class="message"></p>
+        </form>
+      </section>
+
+      <section id="manager-panel" class="card" style="display: none; margin-top: 16px">
+        <h3>비공개 익명 게시판 (매니저 이상)</h3>
+        <p class="muted">매니저 이상은 건의 내용을 조회/수정/삭제할 수 있습니다.</p>
+        <div id="suggestion-list"></div>
+      </section>
+    </main>
+  </body>
+</html>

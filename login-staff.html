@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>매니저 이상 로그인</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script defer src="./auth.js"></script>
+    <script defer src="./app.js"></script>
+    <script>
+      window.addEventListener("DOMContentLoaded", () => {
+        window.App.initStaffLoginPage();
+      });
+    </script>
+  </head>
+  <body>
+    <main class="auth-layout">
+      <section class="auth-box">
+        <h1>매니저 이상 로그인</h1>
+        <p class="muted">아이디와 비밀번호를 입력해주세요.</p>
+
+        <form id="staff-login-form">
+          <label>
+            아이디
+            <input id="staff-id" class="input" type="text" autocomplete="username" required />
+          </label>
+          <label>
+            비밀번호
+            <input
+              id="staff-password"
+              class="input"
+              type="password"
+              autocomplete="current-password"
+              required
+            />
+          </label>
+          <button type="submit" class="btn">로그인</button>
+          <p id="staff-login-message" class="message"></p>
+        </form>
+
+        <p style="margin-top: 16px">
+          일반 인원은 <a id="go-general-link" href="./login-user.html">여기</a>에서 로그인하세요.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>
