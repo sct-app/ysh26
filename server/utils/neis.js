@@ -2,9 +2,49 @@
 
 const DEFAULT_OFFICE_CODE = process.env.DEFAULT_ATPT_OFCDC_SC_CODE || "B10";
 const DEFAULT_SCHOOL_CODE = process.env.DEFAULT_SD_SCHUL_CODE || "7010096";
+const DEFAULT_MEAL_API_KEY = "24c8cc27be96460fa3a0f648dc6d0af5";
+const DEFAULT_SCHOOL_API_KEY = "88c7f5d3fc914566b53504aed7919ff1";
 
 function stripYmd(value) {
   return String(value || "").replaceAll("-", "").trim();
+}
+
+function isValidYmd(ymd) {
+  return /^\d{8}$/.test(ymd);
+}
+
+function addMonths(ymd, months) {
+  if (!isValidYmd(ymd)) return "";
+  const year = Number(ymd.slice(0, 4));
+  const month = Number(ymd.slice(4, 6));
+  const day = Number(ymd.slice(6, 8));
+  const date = new Date(year, month - 1, day);
+  date.setMonth(date.getMonth() + months);
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}${m}${d}`;
+}
+
+function getMonthRangeFromDate(ymd) {
+  if (!isValidYmd(ymd)) return null;
+  return {
+    fromDate: ymd,
+    toDate: addMonths(ymd, 1),
+  };
+}
+
+function getMealApiKey() {
+  return (
+    process.env.NEIS_MEAL_API_KEY ||
+    process.env.NEIS_API_KEY ||
+    process.env.NEIS_SCHOOL_API_KEY ||
+    DEFAULT_MEAL_API_KEY
+  );
+}
+
+function getSchoolApiKey() {
+  return process.env.NEIS_SCHOOL_API_KEY || process.env.NEIS_API_KEY || DEFAULT_SCHOOL_API_KEY;
 }
 
 function parseRows(payload, rootKey) {
@@ -37,7 +77,11 @@ async function callNeis({ endpoint, key, params }) {
 module.exports = {
   DEFAULT_OFFICE_CODE,
   DEFAULT_SCHOOL_CODE,
+  getMealApiKey,
+  getSchoolApiKey,
+  getMonthRangeFromDate,
   stripYmd,
+  isValidYmd,
   parseRows,
   callNeis,
 };

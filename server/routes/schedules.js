@@ -2,7 +2,7 @@
 
 const express = require("express");
 const { requireRole } = require("../middleware/auth");
-const { callNeis, parseRows, stripYmd } = require("../utils/neis");
+const { callNeis, getMonthRangeFromDate, getSchoolApiKey, parseRows, stripYmd } = require("../utils/neis");
 
 const router = express.Router();
 
@@ -12,26 +12,25 @@ router.get("/", requireRole("C"), async (req, res, next) => {
     const fromDate = stripYmd(req.query.fromDate);
     const toDate = stripYmd(req.query.toDate);
 
-    if (!date && (!fromDate || !toDate)) {
-      return res.status(400).json({ message: "date 또는 fromDate/toDate를 입력해주세요." });
-    }
-
-    const apiKey = process.env.NEIS_SCHOOL_API_KEY;
-    if (!apiKey) {
-      return res.status(500).json({ message: "NEIS_SCHOOL_API_KEY가 서버에 설정되지 않았습니다." });
-    }
-    const params = {};
+    let range = null;
     if (date) {
-      params.AA_YMD = date;
+      range = getMonthRangeFromDate(date);
+      if (!range) {
+        return res.status(400).json({ message: "date 형식이 올바르지 않습니다." });
+      }
+    } else if (fromDate && toDate) {
+      range = { fromDate, toDate };
     } else {
-      params.AA_FROM_YMD = fromDate;
-      params.AA_TO_YMD = toDate;
+      return res.status(400).json({ message: "date 또는 fromDate/toDate를 입력해주세요." });
     }
 
     const payload = await callNeis({
       endpoint: "SchoolSchedule",
-      key: apiKey,
-      params,
+      key: getSchoolApiKey(),
+      params: {
+        AA_FROM_YMD: range.fromDate,
+        AA_TO_YMD: range.toDate,
+      },
     });
 
     const rows = parseRows(payload, "SchoolSchedule");
