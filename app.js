@@ -1,13 +1,8 @@
 "use strict";
 
 (function initAppModule() {
-  const SUGGESTIONS_KEY = "ysh26_suggestions";
-  const MEAL_API_BASE = "https://open.neis.go.kr/hub/mealServiceDietInfo";
-  const MEAL_API_KEY = "24c8cc27be96460fa3a0f648dc6d0af5";
-
-  function formatYmd(dateStr) {
-    return String(dateStr || "").replaceAll("-", "");
-  }
+  const DEFAULT_OFFICE_CODE = "B10";
+  const DEFAULT_SCHOOL_CODE = "7010096";
 
   function getToday() {
     const now = new Date();
@@ -31,78 +26,34 @@
       .replaceAll("<BR />", "\n");
   }
 
-  async function fetchMeal({ officeCode, schoolCode, mealDate }) {
+  async function fetchMeal({ mealDate }) {
     const params = new URLSearchParams({
-      KEY: MEAL_API_KEY,
-      Type: "json",
-      pIndex: "1",
-      pSize: "100",
-      ATPT_OFCDC_SC_CODE: officeCode,
-      SD_SCHUL_CODE: schoolCode,
-      MLSV_YMD: formatYmd(mealDate),
+      mealDate: String(mealDate || "").trim(),
     });
+    const payload = await window.Auth.apiRequest(`/api/meals?${params.toString()}`, { method: "GET" });
+    return parseMealRows({ mealServiceDietInfo: [{}, { row: payload.rows || [] }] });
+  }
 
-    const response = await fetch(`${MEAL_API_BASE}?${params.toString()}`);
-    if (!response.ok) {
-      throw new Error(`급식 API 호출 실패 (${response.status})`);
+  async function fetchTimetable({ date, grade, classNm }) {
+    const params = new URLSearchParams({
+      date: String(date || "").trim(),
+      grade: String(grade || "").trim(),
+      classNm: String(classNm || "").trim(),
+    });
+    const payload = await window.Auth.apiRequest(`/api/timetable?${params.toString()}`, { method: "GET" });
+    return Array.isArray(payload.rows) ? payload.rows : [];
+  }
+
+  async function fetchSchedules({ date, fromDate, toDate }) {
+    const params = new URLSearchParams();
+    if (date) {
+      params.set("date", String(date).trim());
+    } else {
+      params.set("fromDate", String(fromDate || "").trim());
+      params.set("toDate", String(toDate || "").trim());
     }
-
-    const payload = await response.json();
-    return parseMealRows(payload);
-  }
-
-  function readSuggestions() {
-    const raw = localStorage.getItem(SUGGESTIONS_KEY);
-    if (!raw) return [];
-    try {
-      const list = JSON.parse(raw);
-      return Array.isArray(list) ? list : [];
-    } catch (error) {
-      localStorage.removeItem(SUGGESTIONS_KEY);
-      return [];
-    }
-  }
-
-  function saveSuggestions(list) {
-    localStorage.setItem(SUGGESTIONS_KEY, JSON.stringify(list));
-  }
-
-  function createSuggestion({ title, content, role }) {
-    const item = {
-      id: crypto.randomUUID(),
-      title: String(title || "").trim(),
-      content: String(content || "").trim(),
-      authorRole: role,
-      createdAt: new Date().toISOString(),
-      updatedAt: null,
-    };
-
-    const list = readSuggestions();
-    list.unshift(item);
-    saveSuggestions(list);
-    return item;
-  }
-
-  function updateSuggestion(id, updateInput) {
-    const list = readSuggestions();
-    const index = list.findIndex((item) => item.id === id);
-    if (index < 0) return false;
-
-    list[index] = {
-      ...list[index],
-      ...updateInput,
-      updatedAt: new Date().toISOString(),
-    };
-    saveSuggestions(list);
-    return true;
-  }
-
-  function deleteSuggestion(id) {
-    const list = readSuggestions();
-    const next = list.filter((item) => item.id !== id);
-    if (next.length === list.length) return false;
-    saveSuggestions(next);
-    return true;
+    const payload = await window.Auth.apiRequest(`/api/schedules?${params.toString()}`, { method: "GET" });
+    return Array.isArray(payload.rows) ? payload.rows : [];
   }
 
   function makeEl(tag, className, text) {
@@ -112,33 +63,74 @@
     return el;
   }
 
-  function initMainPage() {
-    const session = window.Auth.initProtectedPage("C");
+  async function listSuggestions() {
+    const payload = await window.Auth.apiRequest("/api/suggestions", { method: "GET" });
+    return payload.suggestions || [];
+  }
+
+  async function createSuggestion({ title, content }) {
+    const payload = await window.Auth.apiRequest("/api/suggestions", {
+      method: "POST",
+      body: JSON.stringify({ title, content }),
+    });
+    return payload.suggestion;
+  }
+
+  async function updateSuggestion(id, updateInput) {
+    const payload = await window.Auth.apiRequest(`/api/suggestions/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(updateInput),
+    });
+    return payload.suggestion;
+  }
+
+  async function deleteSuggestion(id) {
+    await window.Auth.apiRequest(`/api/suggestions/${id}`, {
+      method: "DELETE",
+    });
+  }
+
+  async function initMainPage() {
+    const session = await window.Auth.initProtectedPage("C");
     if (!session) return;
 
     const dateInput = document.getElementById("meal-date");
-    const officeInput = document.getElementById("office-code");
-    const schoolInput = document.getElementById("school-code");
     const form = document.getElementById("meal-form");
     const result = document.getElementById("meal-result");
+    const schoolCodeText = document.getElementById("fixed-school-code");
+    const officeCodeText = document.getElementById("fixed-office-code");
+
+    const timetableForm = document.getElementById("timetable-form");
+    const timetableDateInput = document.getElementById("timetable-date");
+    const timetableGradeInput = document.getElementById("timetable-grade");
+    const timetableClassInput = document.getElementById("timetable-class");
+    const timetableResult = document.getElementById("timetable-result");
+
+    const scheduleForm = document.getElementById("schedule-form");
+    const scheduleDateInput = document.getElementById("schedule-date");
+    const scheduleResult = document.getElementById("schedule-result");
 
     if (dateInput) dateInput.value = getToday();
+    if (timetableDateInput) timetableDateInput.value = getToday();
+    if (scheduleDateInput) scheduleDateInput.value = getToday();
+    if (officeCodeText) officeCodeText.textContent = DEFAULT_OFFICE_CODE;
+    if (schoolCodeText) schoolCodeText.textContent = DEFAULT_SCHOOL_CODE;
 
     form?.addEventListener("submit", async (event) => {
       event.preventDefault();
       result.textContent = "급식 정보를 불러오는 중입니다...";
 
-      const officeCode = String(officeInput?.value || "").trim();
-      const schoolCode = String(schoolInput?.value || "").trim();
       const mealDate = String(dateInput?.value || "").trim();
 
-      if (!officeCode || !schoolCode || !mealDate) {
-        result.textContent = "시도교육청코드, 학교코드, 날짜를 모두 입력해주세요.";
+      if (!mealDate) {
+        result.textContent = "날짜를 입력해주세요.";
         return;
       }
 
       try {
-        const rows = await fetchMeal({ officeCode, schoolCode, mealDate });
+        const rows = await fetchMeal({
+          mealDate,
+        });
         if (!rows.length) {
           result.textContent = "조회된 급식 정보가 없습니다.";
           return;
@@ -159,9 +151,78 @@
         result.textContent = error instanceof Error ? error.message : "급식 정보를 불러오지 못했습니다.";
       }
     });
+
+    timetableForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      timetableResult.textContent = "시간표를 불러오는 중입니다...";
+
+      const date = String(timetableDateInput?.value || "").trim();
+      const grade = String(timetableGradeInput?.value || "").trim();
+      const classNm = String(timetableClassInput?.value || "").trim();
+
+      if (!date || !grade || !classNm) {
+        timetableResult.textContent = "날짜, 학년, 반을 모두 입력해주세요.";
+        return;
+      }
+
+      try {
+        const rows = await fetchTimetable({ date, grade, classNm });
+        if (!rows.length) {
+          timetableResult.textContent = "조회된 시간표가 없습니다.";
+          return;
+        }
+
+        rows.sort((a, b) => Number(a.PERIO || 0) - Number(b.PERIO || 0));
+        const fragment = document.createDocumentFragment();
+        rows.forEach((row) => {
+          const card = makeEl("article", "meal-card");
+          card.appendChild(makeEl("h4", "", `${row.GRADE}학년 ${row.CLASS_NM}반 / ${row.ALL_TI_YMD}`));
+          card.appendChild(makeEl("p", "meal-info", `${row.PERIO}교시`));
+          card.appendChild(makeEl("p", "meal-menu", row.ITRT_CNTNT || "-"));
+          fragment.appendChild(card);
+        });
+
+        timetableResult.innerHTML = "";
+        timetableResult.appendChild(fragment);
+      } catch (error) {
+        timetableResult.textContent = error instanceof Error ? error.message : "시간표를 불러오지 못했습니다.";
+      }
+    });
+
+    scheduleForm?.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      scheduleResult.textContent = "학사일정을 불러오는 중입니다...";
+      const date = String(scheduleDateInput?.value || "").trim();
+
+      if (!date) {
+        scheduleResult.textContent = "일정을 조회할 날짜를 입력해주세요.";
+        return;
+      }
+
+      try {
+        const rows = await fetchSchedules({ date });
+        if (!rows.length) {
+          scheduleResult.textContent = "조회된 학사일정이 없습니다.";
+          return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        rows.forEach((row) => {
+          const card = makeEl("article", "meal-card");
+          card.appendChild(makeEl("h4", "", `${row.AA_YMD} / ${row.EVENT_NM || "일정"}`));
+          card.appendChild(makeEl("p", "meal-menu", row.EVENT_CNTNT || "-"));
+          card.appendChild(makeEl("p", "meal-info", `학년도 ${row.AY || "-"} / ${row.SCHUL_NM || "-"}`));
+          fragment.appendChild(card);
+        });
+        scheduleResult.innerHTML = "";
+        scheduleResult.appendChild(fragment);
+      } catch (error) {
+        scheduleResult.textContent = error instanceof Error ? error.message : "학사일정을 불러오지 못했습니다.";
+      }
+    });
   }
 
-  function renderSuggestionList(container, suggestions) {
+  function renderSuggestionList(container, suggestions, reloadList) {
     container.innerHTML = "";
     if (!suggestions.length) {
       container.textContent = "등록된 건의가 없습니다.";
@@ -184,26 +245,30 @@
       const editBtn = makeEl("button", "btn secondary", "수정");
       const delBtn = makeEl("button", "btn danger", "삭제");
 
-      editBtn.addEventListener("click", () => {
+      editBtn.addEventListener("click", async () => {
         const nextTitle = window.prompt("새 제목", item.title);
         if (nextTitle === null) return;
         const nextContent = window.prompt("새 내용", item.content);
         if (nextContent === null) return;
 
-        const ok = updateSuggestion(item.id, {
-          title: nextTitle.trim(),
-          content: nextContent.trim(),
-        });
-        if (ok) {
-          renderSuggestionList(container, readSuggestions());
+        try {
+          await updateSuggestion(item.id, {
+            title: nextTitle.trim(),
+            content: nextContent.trim(),
+          });
+          await reloadList();
+        } catch (error) {
+          window.alert(error instanceof Error ? error.message : "수정에 실패했습니다.");
         }
       });
 
-      delBtn.addEventListener("click", () => {
+      delBtn.addEventListener("click", async () => {
         if (!window.confirm("이 건의 글을 삭제할까요?")) return;
-        const ok = deleteSuggestion(item.id);
-        if (ok) {
-          renderSuggestionList(container, readSuggestions());
+        try {
+          await deleteSuggestion(item.id);
+          await reloadList();
+        } catch (error) {
+          window.alert(error instanceof Error ? error.message : "삭제에 실패했습니다.");
         }
       });
 
@@ -214,8 +279,8 @@
     });
   }
 
-  function initSuggestionsPage() {
-    const session = window.Auth.initProtectedPage("C");
+  async function initSuggestionsPage() {
+    const session = await window.Auth.initProtectedPage("C");
     if (!session) return;
 
     const form = document.getElementById("suggest-form");
@@ -225,7 +290,13 @@
     const managerPanel = document.getElementById("manager-panel");
     const managerList = document.getElementById("suggestion-list");
 
-    form?.addEventListener("submit", (event) => {
+    async function reloadManagerSuggestions() {
+      if (!managerList) return;
+      const suggestions = await listSuggestions();
+      renderSuggestionList(managerList, suggestions, reloadManagerSuggestions);
+    }
+
+    form?.addEventListener("submit", async (event) => {
       event.preventDefault();
       const title = String(titleInput?.value || "").trim();
       const content = String(contentInput?.value || "").trim();
@@ -235,23 +306,36 @@
         return;
       }
 
-      createSuggestion({
-        title,
-        content,
-        role: session.role,
-      });
+      try {
+        await createSuggestion({
+          title,
+          content,
+        });
+        form.reset();
+        message.textContent = "익명 건의가 등록되었습니다.";
+      } catch (error) {
+        message.textContent = error instanceof Error ? error.message : "건의 등록에 실패했습니다.";
+        return;
+      }
 
-      form.reset();
-      message.textContent = "익명 건의가 등록되었습니다.";
-
-      if (window.Auth.canAccess(session.role, "B") && managerList) {
-        renderSuggestionList(managerList, readSuggestions());
+      if (window.Auth.canAccess(session.role, "B")) {
+        try {
+          await reloadManagerSuggestions();
+        } catch (error) {
+          message.textContent = error instanceof Error ? error.message : "목록을 불러오지 못했습니다.";
+        }
       }
     });
 
     if (window.Auth.canAccess(session.role, "B")) {
       if (managerPanel) managerPanel.style.display = "block";
-      if (managerList) renderSuggestionList(managerList, readSuggestions());
+      try {
+        await reloadManagerSuggestions();
+      } catch (error) {
+        if (managerList) {
+          managerList.textContent = error instanceof Error ? error.message : "목록을 불러오지 못했습니다.";
+        }
+      }
       return;
     }
 
@@ -262,31 +346,56 @@
     }
   }
 
-  function initManagerPage() {
-    const session = window.Auth.initProtectedPage("B");
+  async function initManagerPage() {
+    const session = await window.Auth.initProtectedPage("B");
     if (!session) return;
 
     const countTarget = document.getElementById("manager-suggest-count");
-    const items = readSuggestions();
-    if (countTarget) countTarget.textContent = String(items.length);
+    if (!countTarget) return;
+
+    try {
+      const items = await listSuggestions();
+      countTarget.textContent = String(items.length);
+    } catch (error) {
+      countTarget.textContent = "-";
+      window.alert(error instanceof Error ? error.message : "건의 수를 조회할 수 없습니다.");
+    }
   }
 
-  function initAdminPage() {
-    const session = window.Auth.initProtectedPage("A");
+  async function initAdminPage() {
+    const session = await window.Auth.initProtectedPage("A");
     if (!session) return;
 
     const accountList = document.getElementById("staff-account-list");
     if (!accountList) return;
     accountList.innerHTML = "";
 
-    Object.entries(window.Auth.STAFF_ACCOUNTS).forEach(([id, account]) => {
-      const item = makeEl("li", "", `${id} / ${account.role} / 기본 비밀번호: ${account.password}`);
-      accountList.appendChild(item);
-    });
+    try {
+      const payload = await window.Auth.apiRequest("/api/admin/staff", { method: "GET" });
+      const staff = payload.staff || [];
+
+      if (!staff.length) {
+        accountList.innerHTML = "<li>등록된 계정이 없습니다.</li>";
+        return;
+      }
+
+      staff.forEach((user) => {
+        const item = makeEl(
+          "li",
+          "",
+          `${user.username} / ${user.display_name} / 역할 ${user.role} / ${
+            user.is_active ? "활성" : "비활성"
+          }`
+        );
+        accountList.appendChild(item);
+      });
+    } catch (error) {
+      accountList.innerHTML = `<li>${error instanceof Error ? error.message : "계정 목록을 불러오지 못했습니다."}</li>`;
+    }
   }
 
-  function initGeneralLoginPage() {
-    window.Auth.redirectIfLoggedIn();
+  async function initGeneralLoginPage() {
+    await window.Auth.redirectIfLoggedIn();
     const form = document.getElementById("general-login-form");
     const pwInput = document.getElementById("general-password");
     const message = document.getElementById("general-login-message");
@@ -298,11 +407,12 @@
       goStaffLink.href = `./login-staff.html?redirect=${encodeURIComponent(redirect)}`;
     }
 
-    form?.addEventListener("submit", (event) => {
+    form?.addEventListener("submit", async (event) => {
       event.preventDefault();
-      const result = window.Auth.loginGeneral(String(pwInput?.value || "").trim());
-      if (!result.ok) {
-        message.textContent = result.message;
+      try {
+        await window.Auth.loginGeneral(String(pwInput?.value || "").trim());
+      } catch (error) {
+        message.textContent = error instanceof Error ? error.message : "로그인에 실패했습니다.";
         return;
       }
 
@@ -312,8 +422,8 @@
     });
   }
 
-  function initStaffLoginPage() {
-    window.Auth.redirectIfLoggedIn();
+  async function initStaffLoginPage() {
+    await window.Auth.redirectIfLoggedIn();
     const form = document.getElementById("staff-login-form");
     const idInput = document.getElementById("staff-id");
     const pwInput = document.getElementById("staff-password");
@@ -326,15 +436,12 @@
       goGeneralLink.href = `./login-user.html?redirect=${encodeURIComponent(redirect)}`;
     }
 
-    form?.addEventListener("submit", (event) => {
+    form?.addEventListener("submit", async (event) => {
       event.preventDefault();
-      const result = window.Auth.loginStaff(
-        String(idInput?.value || "").trim(),
-        String(pwInput?.value || "").trim()
-      );
-
-      if (!result.ok) {
-        message.textContent = result.message;
+      try {
+        await window.Auth.loginStaff(String(idInput?.value || "").trim(), String(pwInput?.value || "").trim());
+      } catch (error) {
+        message.textContent = error instanceof Error ? error.message : "로그인에 실패했습니다.";
         return;
       }
 
