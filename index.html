@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>메인 페이지 (등급 C)</title>
+    <title>메인 페이지</title>
     <link rel="stylesheet" href="./styles.css" />
     <script defer src="./config.js"></script>
     <script defer src="./auth.js"></script>
@@ -43,7 +43,7 @@
       <section class="grid">
         <article class="card">
           <h3>익명 건의함</h3>
-          <p>건의는 누구나 등록할 수 있고, 내용 조회/관리 권한은 매니저 이상만 가능합니다.</p>
+          <p>건의는 누구나 등록할 수 있습니다.</p>
           <a class="btn" href="./anonymous.html">건의함 바로가기</a>
         </article>
 
@@ -76,8 +76,8 @@
               <input id="timetable-grade" class="input" type="number" min="1" max="3" value="1" required />
             </label>
             <label>
-              반
-              <input id="timetable-class" class="input" type="number" min="1" max="20" value="1" required />
+              학교코드
+              <input id="school-code" class="input" value="7010096" required />
             </label>
             <button type="submit" class="btn">시간표 조회</button>
           </form>
