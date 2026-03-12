@@ -39,7 +39,7 @@ NEIS 조회 기준 학교는 기본값으로 고정됩니다.
 - `login.html`: 로그인 방식 선택
 - `login-user.html`: 일반 인원 로그인(비밀번호만)
 - `login-staff.html`: 매니저/관리자 로그인(ID+PW)
-- `index.html`: 메인(C), 익명건의함/급식/시간표/학사일정/공지
+- `index.html`: 메인(C), 익명건의함/급식/시간표/학사일정(1개월 조회)/공지
 - `anonymous.html`: 익명 건의 등록(C), 비공개 목록관리(B+)
 - `manager.html`: 매니저 전용(B)
 - `admin.html`: 관리자 전용(A)

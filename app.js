@@ -34,11 +34,9 @@
     return parseMealRows({ mealServiceDietInfo: [{}, { row: payload.rows || [] }] });
   }
 
-  async function fetchTimetable({ date, grade, classNm }) {
+  async function fetchTimetable({ date }) {
     const params = new URLSearchParams({
       date: String(date || "").trim(),
-      grade: String(grade || "").trim(),
-      classNm: String(classNm || "").trim(),
     });
     const payload = await window.Auth.apiRequest(`/api/timetable?${params.toString()}`, { method: "GET" });
     return Array.isArray(payload.rows) ? payload.rows : [];
@@ -102,8 +100,6 @@
 
     const timetableForm = document.getElementById("timetable-form");
     const timetableDateInput = document.getElementById("timetable-date");
-    const timetableGradeInput = document.getElementById("timetable-grade");
-    const timetableClassInput = document.getElementById("timetable-class");
     const timetableResult = document.getElementById("timetable-result");
 
     const scheduleForm = document.getElementById("schedule-form");
@@ -157,16 +153,14 @@
       timetableResult.textContent = "시간표를 불러오는 중입니다...";
 
       const date = String(timetableDateInput?.value || "").trim();
-      const grade = String(timetableGradeInput?.value || "").trim();
-      const classNm = String(timetableClassInput?.value || "").trim();
 
-      if (!date || !grade || !classNm) {
-        timetableResult.textContent = "날짜, 학년, 반을 모두 입력해주세요.";
+      if (!date) {
+        timetableResult.textContent = "날짜를 입력해주세요.";
         return;
       }
 
       try {
-        const rows = await fetchTimetable({ date, grade, classNm });
+        const rows = await fetchTimetable({ date });
         if (!rows.length) {
           timetableResult.textContent = "조회된 시간표가 없습니다.";
           return;
@@ -176,7 +170,7 @@
         const fragment = document.createDocumentFragment();
         rows.forEach((row) => {
           const card = makeEl("article", "meal-card");
-          card.appendChild(makeEl("h4", "", `${row.GRADE}학년 ${row.CLASS_NM}반 / ${row.ALL_TI_YMD}`));
+          card.appendChild(makeEl("h4", "", `${row.GRADE || "-"}학년 ${row.CLASS_NM || "-"}반 / ${row.ALL_TI_YMD}`));
           card.appendChild(makeEl("p", "meal-info", `${row.PERIO}교시`));
           card.appendChild(makeEl("p", "meal-menu", row.ITRT_CNTNT || "-"));
           fragment.appendChild(card);
