@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>로그인 선택</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script defer src="./auth.js"></script>
+    <script>
+      window.addEventListener("DOMContentLoaded", () => {
+        window.Auth.redirectIfLoggedIn();
+        const params = new URLSearchParams(window.location.search);
+        const redirect = params.get("redirect");
+        if (!redirect) return;
+        const query = `?redirect=${encodeURIComponent(redirect)}`;
+        const generalLink = document.getElementById("general-login-link");
+        const staffLink = document.getElementById("staff-login-link");
+        if (generalLink) generalLink.href = `./login-user.html${query}`;
+        if (staffLink) staffLink.href = `./login-staff.html${query}`;
+      });
+    </script>
+  </head>
+  <body>
+    <main class="auth-layout">
+      <section class="auth-box">
+        <h1>접속 방식 선택</h1>
+        <p class="muted">
+          일반 인원은 공용 비밀번호로 로그인하고, 매니저/관리자는 아이디+비밀번호로 로그인합니다.
+        </p>
+        <div class="btn-row" style="margin-top: 16px">
+          <a id="general-login-link" class="btn" href="./login-user.html">일반 인원 로그인</a>
+          <a id="staff-login-link" class="btn secondary" href="./login-staff.html">매니저 이상 로그인</a>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

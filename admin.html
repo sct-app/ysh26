@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>관리자 페이지 (등급 A)</title>
+    <link rel="stylesheet" href="./styles.css" />
+    <script defer src="./auth.js"></script>
+    <script defer src="./app.js"></script>
+    <script>
+      window.addEventListener("DOMContentLoaded", () => {
+        window.App.initAdminPage();
+      });
+    </script>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="container topbar-inner">
+        <div class="brand">학교 포털</div>
+        <nav class="nav">
+          <a href="./index.html">메인(C)</a>
+          <a href="./anonymous.html">익명 건의함</a>
+          <a href="./manager.html" data-min-role="B">매니저 전용(B)</a>
+          <a href="./admin.html" data-min-role="A">관리자 전용(A)</a>
+        </nav>
+        <div>
+          <span data-user-info class="muted"></span>
+          <button type="button" class="btn ghost" data-logout>로그아웃</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container page-wrap">
+      <h1>관리자 전용 페이지</h1>
+      <p>
+        페이지 등급: <span class="role-badge">A (관리자 전용)</span>
+      </p>
+
+      <section class="card">
+        <h3>매니저 이상 계정 목록(기본값)</h3>
+        <p class="muted">
+          GitHub Pages 정적 사이트 특성상 프론트 코드에 기본 계정이 포함됩니다. 실제 운영 시에는 서버 인증으로
+          교체하세요.
+        </p>
+        <ul id="staff-account-list" class="notice-list"></ul>
+      </section>
+    </main>
+  </body>
+</html>
