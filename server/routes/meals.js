@@ -8,15 +8,21 @@ const router = express.Router();
 
 router.get("/", requireRole("C"), async (req, res, next) => {
   try {
+    const officeCode = String(req.query.officeCode || "")
+      .trim()
+      .toUpperCase();
+    const schoolCode = String(req.query.schoolCode || "").trim();
     const mealDate = stripYmd(req.query.mealDate);
 
-    if (!mealDate) {
-      return res.status(400).json({ message: "mealDate가 필요합니다." });
+    if (!officeCode || !schoolCode || !mealDate) {
+      return res.status(400).json({ message: "officeCode, schoolCode, mealDate가 필요합니다." });
     }
 
     const payload = await callNeis({
       endpoint: "mealServiceDietInfo",
       key: getMealApiKey(),
+      officeCode,
+      schoolCode,
       params: {
         MLSV_YMD: mealDate,
       },

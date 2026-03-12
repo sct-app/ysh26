@@ -8,12 +8,16 @@ const router = express.Router();
 
 router.get("/", requireRole("C"), async (req, res, next) => {
   try {
+    const officeCode = String(req.query.officeCode || "")
+      .trim()
+      .toUpperCase();
+    const schoolCode = String(req.query.schoolCode || "").trim();
     const date = stripYmd(req.query.date);
     const grade = String(req.query.grade || "").trim();
     const classNm = String(req.query.classNm || "").trim();
 
-    if (!date) {
-      return res.status(400).json({ message: "date가 필요합니다." });
+    if (!officeCode || !schoolCode || !date) {
+      return res.status(400).json({ message: "officeCode, schoolCode, date가 필요합니다." });
     }
 
     const params = {
@@ -25,6 +29,8 @@ router.get("/", requireRole("C"), async (req, res, next) => {
     const payload = await callNeis({
       endpoint: "hisTimetable",
       key: getSchoolApiKey(),
+      officeCode,
+      schoolCode,
       params,
     });
 

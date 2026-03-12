@@ -48,11 +48,20 @@
         </article>
 
         <article class="card">
+          <h3>학교 정보 입력</h3>
+          <label>
+            시도교육청코드
+            <input id="office-code" class="input" placeholder="예: B10" required />
+          </label>
+          <label>
+            학교코드
+            <input id="school-code" class="input" placeholder="예: 7010096" required />
+          </label>
+          <p class="muted">예시 코드: B10 / 7010096</p>
+        </article>
+
+        <article class="card">
           <h3>오늘의 급식</h3>
-          <p class="muted">
-            시도교육청코드: <strong id="fixed-office-code">B10</strong> /
-            학교코드: <strong id="fixed-school-code">7010096</strong>
-          </p>
           <form id="meal-form">
             <label>
               날짜
@@ -60,12 +69,11 @@
             </label>
             <button type="submit" class="btn">급식 조회</button>
           </form>
-          <div id="meal-result" class="message">날짜를 선택하고 급식을 조회해주세요.</div>
+          <div id="meal-result" class="message">학교코드 입력 후 날짜를 선택하고 급식을 조회해주세요.</div>
         </article>
 
         <article class="card">
           <h3>시간표</h3>
-          <p class="muted">기본 학교코드(B10 / 7010096) 기준으로 조회합니다.</p>
           <form id="timetable-form">
             <label>
               날짜
@@ -73,12 +81,12 @@
             </label>
             <button type="submit" class="btn">시간표 조회</button>
           </form>
-          <div id="timetable-result" class="message">날짜를 입력하고 시간표를 조회해주세요.</div>
+          <div id="timetable-result" class="message">학교코드 입력 후 날짜를 입력하고 시간표를 조회해주세요.</div>
         </article>
 
         <article class="card">
           <h3>학사일정</h3>
-          <p class="muted">기본 학교코드(B10 / 7010096), 선택한 날짜부터 1개월 범위로 조회합니다.</p>
+          <p class="muted">선택한 시작 날짜부터 1개월 범위로 조회합니다.</p>
           <form id="schedule-form">
             <label>
               시작 날짜
@@ -86,7 +94,7 @@
             </label>
             <button type="submit" class="btn">학사일정 조회</button>
           </form>
-          <div id="schedule-result" class="message">시작 날짜를 입력하고 1개월 학사일정을 조회해주세요.</div>
+          <div id="schedule-result" class="message">학교코드 입력 후 시작 날짜를 입력하고 1개월 학사일정을 조회해주세요.</div>
         </article>
 
         <article class="card">
@@ -95,7 +103,7 @@
             <li>모든 페이지는 로그인 후 접근 가능합니다.</li>
             <li>A 등급: 관리자 전용, B 등급: 매니저 이상, C 등급: 로그인 사용자.</li>
             <li>일반 인원 로그인 비밀번호는 서버 DB의 공용 코드로 검증됩니다(기본 시드값: <strong>YEOUIDO</strong>).</li>
-            <li>NEIS 기본 조회코드는 시도교육청 B10, 학교코드 7010096으로 고정됩니다.</li>
+            <li>NEIS 조회를 위해 시도교육청코드/학교코드를 먼저 입력하세요(예시: B10 / 7010096).</li>
           </ul>
         </article>
       </section>
