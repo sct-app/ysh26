@@ -1,9 +1,6 @@
 "use strict";
 
 (function initAppModule() {
-  const DEFAULT_OFFICE_CODE = "B10";
-  const DEFAULT_SCHOOL_CODE = "7010096";
-
   function getToday() {
     const now = new Date();
     const y = now.getFullYear();
@@ -26,24 +23,30 @@
       .replaceAll("<BR />", "\n");
   }
 
-  async function fetchMeal({ mealDate }) {
+  async function fetchMeal({ officeCode, schoolCode, mealDate }) {
     const params = new URLSearchParams({
+      officeCode: String(officeCode || "").trim(),
+      schoolCode: String(schoolCode || "").trim(),
       mealDate: String(mealDate || "").trim(),
     });
     const payload = await window.Auth.apiRequest(`/api/meals?${params.toString()}`, { method: "GET" });
     return parseMealRows({ mealServiceDietInfo: [{}, { row: payload.rows || [] }] });
   }
 
-  async function fetchTimetable({ date }) {
+  async function fetchTimetable({ officeCode, schoolCode, date }) {
     const params = new URLSearchParams({
+      officeCode: String(officeCode || "").trim(),
+      schoolCode: String(schoolCode || "").trim(),
       date: String(date || "").trim(),
     });
     const payload = await window.Auth.apiRequest(`/api/timetable?${params.toString()}`, { method: "GET" });
     return Array.isArray(payload.rows) ? payload.rows : [];
   }
 
-  async function fetchSchedules({ date, fromDate, toDate }) {
+  async function fetchSchedules({ officeCode, schoolCode, date, fromDate, toDate }) {
     const params = new URLSearchParams();
+    params.set("officeCode", String(officeCode || "").trim());
+    params.set("schoolCode", String(schoolCode || "").trim());
     if (date) {
       params.set("date", String(date).trim());
     } else {
@@ -92,11 +95,11 @@
     const session = await window.Auth.initProtectedPage("C");
     if (!session) return;
 
+    const officeInput = document.getElementById("office-code");
+    const schoolInput = document.getElementById("school-code");
     const dateInput = document.getElementById("meal-date");
     const form = document.getElementById("meal-form");
     const result = document.getElementById("meal-result");
-    const schoolCodeText = document.getElementById("fixed-school-code");
-    const officeCodeText = document.getElementById("fixed-office-code");
 
     const timetableForm = document.getElementById("timetable-form");
     const timetableDateInput = document.getElementById("timetable-date");
@@ -109,14 +112,29 @@
     if (dateInput) dateInput.value = getToday();
     if (timetableDateInput) timetableDateInput.value = getToday();
     if (scheduleDateInput) scheduleDateInput.value = getToday();
-    if (officeCodeText) officeCodeText.textContent = DEFAULT_OFFICE_CODE;
-    if (schoolCodeText) schoolCodeText.textContent = DEFAULT_SCHOOL_CODE;
+
+    function getSchoolParams() {
+      const officeCode = String(officeInput?.value || "")
+        .trim()
+        .toUpperCase();
+      const schoolCode = String(schoolInput?.value || "").trim();
+      if (!officeCode || !schoolCode) {
+        return null;
+      }
+      return { officeCode, schoolCode };
+    }
 
     form?.addEventListener("submit", async (event) => {
       event.preventDefault();
       result.textContent = "급식 정보를 불러오는 중입니다...";
 
+      const schoolParams = getSchoolParams();
       const mealDate = String(dateInput?.value || "").trim();
+
+      if (!schoolParams) {
+        result.textContent = "시도교육청코드와 학교코드를 입력해주세요.";
+        return;
+      }
 
       if (!mealDate) {
         result.textContent = "날짜를 입력해주세요.";
@@ -125,6 +143,8 @@
 
       try {
         const rows = await fetchMeal({
+          officeCode: schoolParams.officeCode,
+          schoolCode: schoolParams.schoolCode,
           mealDate,
         });
         if (!rows.length) {
@@ -152,7 +172,13 @@
       event.preventDefault();
       timetableResult.textContent = "시간표를 불러오는 중입니다...";
 
+      const schoolParams = getSchoolParams();
       const date = String(timetableDateInput?.value || "").trim();
+
+      if (!schoolParams) {
+        timetableResult.textContent = "시도교육청코드와 학교코드를 입력해주세요.";
+        return;
+      }
 
       if (!date) {
         timetableResult.textContent = "날짜를 입력해주세요.";
@@ -160,7 +186,11 @@
       }
 
       try {
-        const rows = await fetchTimetable({ date });
+        const rows = await fetchTimetable({
+          officeCode: schoolParams.officeCode,
+          schoolCode: schoolParams.schoolCode,
+          date,
+        });
         if (!rows.length) {
           timetableResult.textContent = "조회된 시간표가 없습니다.";
           return;
@@ -186,7 +216,13 @@
     scheduleForm?.addEventListener("submit", async (event) => {
       event.preventDefault();
       scheduleResult.textContent = "학사일정을 불러오는 중입니다...";
+      const schoolParams = getSchoolParams();
       const date = String(scheduleDateInput?.value || "").trim();
+
+      if (!schoolParams) {
+        scheduleResult.textContent = "시도교육청코드와 학교코드를 입력해주세요.";
+        return;
+      }
 
       if (!date) {
         scheduleResult.textContent = "일정을 조회할 날짜를 입력해주세요.";
@@ -194,7 +230,11 @@
       }
 
       try {
-        const rows = await fetchSchedules({ date });
+        const rows = await fetchSchedules({
+          officeCode: schoolParams.officeCode,
+          schoolCode: schoolParams.schoolCode,
+          date,
+        });
         if (!rows.length) {
           scheduleResult.textContent = "조회된 학사일정이 없습니다.";
           return;

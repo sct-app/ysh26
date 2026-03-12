@@ -8,9 +8,17 @@ const router = express.Router();
 
 router.get("/", requireRole("C"), async (req, res, next) => {
   try {
+    const officeCode = String(req.query.officeCode || "")
+      .trim()
+      .toUpperCase();
+    const schoolCode = String(req.query.schoolCode || "").trim();
     const date = stripYmd(req.query.date);
     const fromDate = stripYmd(req.query.fromDate);
     const toDate = stripYmd(req.query.toDate);
+
+    if (!officeCode || !schoolCode) {
+      return res.status(400).json({ message: "officeCode, schoolCode가 필요합니다." });
+    }
 
     let range = null;
     if (date) {
@@ -27,6 +35,8 @@ router.get("/", requireRole("C"), async (req, res, next) => {
     const payload = await callNeis({
       endpoint: "SchoolSchedule",
       key: getSchoolApiKey(),
+      officeCode,
+      schoolCode,
       params: {
         AA_FROM_YMD: range.fromDate,
         AA_TO_YMD: range.toDate,

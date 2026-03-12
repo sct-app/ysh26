@@ -53,14 +53,14 @@ function parseRows(payload, rootKey) {
   return Array.isArray(top[1]?.row) ? top[1].row : [];
 }
 
-async function callNeis({ endpoint, key, params }) {
+async function callNeis({ endpoint, key, officeCode, schoolCode, params }) {
   const query = new URLSearchParams({
     KEY: key,
     Type: "json",
     pIndex: "1",
     pSize: "100",
-    ATPT_OFCDC_SC_CODE: DEFAULT_OFFICE_CODE,
-    SD_SCHUL_CODE: DEFAULT_SCHOOL_CODE,
+    ATPT_OFCDC_SC_CODE: officeCode || DEFAULT_OFFICE_CODE,
+    SD_SCHUL_CODE: schoolCode || DEFAULT_SCHOOL_CODE,
     ...params,
   });
 
