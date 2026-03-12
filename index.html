@@ -49,15 +49,11 @@
 
         <article class="card">
           <h3>오늘의 급식</h3>
+          <p class="muted">
+            시도교육청코드: <strong id="fixed-office-code">B10</strong> /
+            학교코드: <strong id="fixed-school-code">7010096</strong>
+          </p>
           <form id="meal-form">
-            <label>
-              시도교육청코드
-              <input id="office-code" class="input" value="B10" required />
-            </label>
-            <label>
-              학교코드
-              <input id="school-code" class="input" value="7010569" required />
-            </label>
             <label>
               날짜
               <input id="meal-date" class="input" type="date" required />
@@ -68,11 +64,46 @@
         </article>
 
         <article class="card">
+          <h3>시간표</h3>
+          <p class="muted">기본 학교코드(B10 / 7010096) 기준으로 조회합니다.</p>
+          <form id="timetable-form">
+            <label>
+              날짜
+              <input id="timetable-date" class="input" type="date" required />
+            </label>
+            <label>
+              학년
+              <input id="timetable-grade" class="input" type="number" min="1" max="3" value="1" required />
+            </label>
+            <label>
+              반
+              <input id="timetable-class" class="input" type="number" min="1" max="20" value="1" required />
+            </label>
+            <button type="submit" class="btn">시간표 조회</button>
+          </form>
+          <div id="timetable-result" class="message">날짜/학년/반을 입력하고 시간표를 조회해주세요.</div>
+        </article>
+
+        <article class="card">
+          <h3>학사일정</h3>
+          <p class="muted">기본 학교코드(B10 / 7010096) 기준으로 조회합니다.</p>
+          <form id="schedule-form">
+            <label>
+              날짜
+              <input id="schedule-date" class="input" type="date" required />
+            </label>
+            <button type="submit" class="btn">학사일정 조회</button>
+          </form>
+          <div id="schedule-result" class="message">날짜를 입력하고 학사일정을 조회해주세요.</div>
+        </article>
+
+        <article class="card">
           <h3>공지사항</h3>
           <ul class="notice-list">
             <li>모든 페이지는 로그인 후 접근 가능합니다.</li>
             <li>A 등급: 관리자 전용, B 등급: 매니저 이상, C 등급: 로그인 사용자.</li>
             <li>일반 인원 로그인 비밀번호는 서버 DB의 공용 코드로 검증됩니다(기본 시드값: <strong>YEOUIDO</strong>).</li>
+            <li>NEIS 기본 조회코드는 시도교육청 B10, 학교코드 7010096으로 고정됩니다.</li>
           </ul>
         </article>
       </section>

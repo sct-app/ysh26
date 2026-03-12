@@ -14,6 +14,8 @@ const authRoutes = require("./routes/auth");
 const suggestionRoutes = require("./routes/suggestions");
 const adminRoutes = require("./routes/admin");
 const mealRoutes = require("./routes/meals");
+const timetableRoutes = require("./routes/timetable");
+const scheduleRoutes = require("./routes/schedules");
 
 const app = express();
 
@@ -66,6 +68,8 @@ app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/suggestions", suggestionRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/meals", mealRoutes);
+app.use("/api/timetable", timetableRoutes);
+app.use("/api/schedules", scheduleRoutes);
 
 if (process.env.SERVE_STATIC === "true") {
   const staticRoot = path.resolve(__dirname, "..");
@@ -74,7 +78,7 @@ if (process.env.SERVE_STATIC === "true") {
 
 app.use((err, _req, res, _next) => {
   const message = err instanceof Error ? err.message : "서버 에러";
-  const status = String(message).includes("CORS") ? 403 : 500;
+  const status = err?.status || (String(message).includes("CORS") ? 403 : 500);
   res.status(status).json({ message });
 });
 

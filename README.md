@@ -10,7 +10,7 @@
 - 프론트 코드에 있던 비밀번호/계정 하드코딩 제거
 - 로그인/권한 검증을 서버 API로 전환
 - 건의함 데이터를 `localStorage` 대신 PostgreSQL 저장
-- 급식 API 키를 프론트에서 제거하고 서버에서 호출(프록시)
+- 급식/시간표/학사일정 API 키를 프론트에서 제거하고 서버에서 호출(프록시)
 - HttpOnly 쿠키 기반 세션(JWT) 적용
 
 ---
@@ -26,6 +26,10 @@
 - 건의 조회/수정/삭제: B 이상
 - 매니저 계정 목록 조회: A 전용
 
+NEIS 조회 기준 학교는 기본값으로 고정됩니다.
+- 시도교육청코드: `B10`
+- 학교코드: `7010096`
+
 ---
 
 ## 프로젝트 구조
@@ -35,12 +39,12 @@
 - `login.html`: 로그인 방식 선택
 - `login-user.html`: 일반 인원 로그인(비밀번호만)
 - `login-staff.html`: 매니저/관리자 로그인(ID+PW)
-- `index.html`: 메인(C), 익명건의함/급식/공지
+- `index.html`: 메인(C), 익명건의함/급식/시간표/학사일정/공지
 - `anonymous.html`: 익명 건의 등록(C), 비공개 목록관리(B+)
 - `manager.html`: 매니저 전용(B)
 - `admin.html`: 관리자 전용(A)
 - `auth.js`: API 기반 인증/권한 처리
-- `app.js`: 페이지 로직/건의함/급식 API 호출
+- `app.js`: 페이지 로직/건의함/NEIS API 호출
 - `config.js`: 프론트 API 서버 주소 설정
 
 ### 백엔드
@@ -50,6 +54,8 @@
 - `server/routes/suggestions.js`: 건의 CRUD
 - `server/routes/admin.js`: 관리자용 계정 조회
 - `server/routes/meals.js`: NEIS 급식 API 프록시
+- `server/routes/timetable.js`: NEIS 시간표 API 프록시
+- `server/routes/schedules.js`: NEIS 학사일정 API 프록시
 - `server/db/schema.sql`: DB 스키마
 - `server/scripts/migrate.js`: 마이그레이션
 - `server/scripts/seed.js`: 초기 데이터 시드
@@ -68,7 +74,10 @@ cp .env.example .env
 - `DATABASE_URL`
 - `JWT_SECRET`
 - `FRONTEND_ORIGIN`
-- `NEIS_API_KEY`
+- `NEIS_MEAL_API_KEY`
+- `NEIS_SCHOOL_API_KEY`
+- `DEFAULT_ATPT_OFCDC_SC_CODE` (기본값: B10)
+- `DEFAULT_SD_SCHUL_CODE` (기본값: 7010096)
 
 > 운영 환경에서는 기본 비밀번호를 반드시 변경하세요.
 
