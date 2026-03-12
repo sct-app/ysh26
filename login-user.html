@@ -5,14 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>일반 인원 로그인</title>
     <link rel="stylesheet" href="./styles.css" />
-    <script defer src="./config.js"></script>
     <script defer src="./auth.js"></script>
     <script defer src="./app.js"></script>
     <script>
       window.addEventListener("DOMContentLoaded", () => {
-        window.App.initGeneralLoginPage().catch((error) => {
-          console.error(error);
-        });
+        window.App.initGeneralLoginPage();
       });
     </script>
   </head>
