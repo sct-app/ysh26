@@ -5,11 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>관리자 페이지 (등급 A)</title>
     <link rel="stylesheet" href="./styles.css" />
+    <script defer src="./config.js"></script>
     <script defer src="./auth.js"></script>
     <script defer src="./app.js"></script>
     <script>
       window.addEventListener("DOMContentLoaded", () => {
-        window.App.initAdminPage();
+        window.App.initAdminPage().catch((error) => {
+          console.error(error);
+        });
       });
     </script>
   </head>
@@ -37,10 +40,9 @@
       </p>
 
       <section class="card">
-        <h3>매니저 이상 계정 목록(기본값)</h3>
+        <h3>매니저 이상 계정 목록(DB 조회)</h3>
         <p class="muted">
-          GitHub Pages 정적 사이트 특성상 프론트 코드에 기본 계정이 포함됩니다. 실제 운영 시에는 서버 인증으로
-          교체하세요.
+          이 목록은 서버(DB)에서 조회되며 비밀번호는 표시되지 않습니다.
         </p>
         <ul id="staff-account-list" class="notice-list"></ul>
       </section>

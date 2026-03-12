@@ -5,11 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>메인 페이지 (등급 C)</title>
     <link rel="stylesheet" href="./styles.css" />
+    <script defer src="./config.js"></script>
     <script defer src="./auth.js"></script>
     <script defer src="./app.js"></script>
     <script>
       window.addEventListener("DOMContentLoaded", () => {
-        window.App.initMainPage();
+        window.App.initMainPage().catch((error) => {
+          console.error(error);
+        });
       });
     </script>
   </head>
@@ -69,7 +72,7 @@
           <ul class="notice-list">
             <li>모든 페이지는 로그인 후 접근 가능합니다.</li>
             <li>A 등급: 관리자 전용, B 등급: 매니저 이상, C 등급: 로그인 사용자.</li>
-            <li>일반 인원 로그인 비밀번호는 <strong>YEOUIDO</strong> 입니다.</li>
+            <li>일반 인원 로그인 비밀번호는 서버 DB의 공용 코드로 검증됩니다(기본 시드값: <strong>YEOUIDO</strong>).</li>
           </ul>
         </article>
       </section>
