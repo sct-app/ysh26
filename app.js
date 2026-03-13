@@ -3,6 +3,7 @@
 (function initAppModule() {
   const SUGGESTIONS_KEY = "ysh26_suggestions";
   const CLASS_NOTICES_KEY = "ysh26_class_notices";
+  const CLASS_NOTICES_REMOTE_URL = "https://mantledb.sh/v2/ysh26-2-5/class-notices";
   const MEAL_API_BASE = "https://open.neis.go.kr/hub/mealServiceDietInfo";
   const MEAL_API_KEY = "24c8cc27be96460fa3a0f648dc6d0af5";
 
@@ -106,7 +107,7 @@
     return true;
   }
 
-  function readClassNotices() {
+  function readClassNoticesLocal() {
     const raw = localStorage.getItem(CLASS_NOTICES_KEY);
     if (!raw) return [];
     try {
@@ -118,11 +119,59 @@
     }
   }
 
-  function saveClassNotices(list) {
+  function saveClassNoticesLocal(list) {
     localStorage.setItem(CLASS_NOTICES_KEY, JSON.stringify(list));
   }
 
-  function createClassNotice({ title, content, author }) {
+  async function readClassNoticesRemote() {
+    const response = await fetch(`${CLASS_NOTICES_REMOTE_URL}?ts=${Date.now()}`, {
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      throw new Error("학급 공지사항을 불러오지 못했습니다.");
+    }
+
+    const payload = await response.json();
+    const items = payload?.entry?.items;
+    return Array.isArray(items) ? items : [];
+  }
+
+  async function saveClassNoticesRemote(list) {
+    const response = await fetch(CLASS_NOTICES_REMOTE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        entry: {
+          items: list,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("학급 공지사항 저장에 실패했습니다.");
+    }
+  }
+
+  async function readClassNotices() {
+    try {
+      const remote = await readClassNoticesRemote();
+      saveClassNoticesLocal(remote);
+      if (!remote.length) {
+        const local = readClassNoticesLocal();
+        if (local.length) {
+          await saveClassNoticesRemote(local);
+          return local;
+        }
+      }
+      return remote;
+    } catch (_error) {
+      return readClassNoticesLocal();
+    }
+  }
+
+  async function createClassNotice({ title, content, author }) {
     const item = {
       id: crypto.randomUUID(),
       title: String(title || "").trim(),
@@ -130,17 +179,20 @@
       author: String(author || "").trim(),
       createdAt: new Date().toISOString(),
     };
-    const list = readClassNotices();
+
+    const list = await readClassNotices();
     list.unshift(item);
-    saveClassNotices(list);
+    await saveClassNoticesRemote(list);
+    saveClassNoticesLocal(list);
     return item;
   }
 
-  function deleteClassNotice(id) {
-    const list = readClassNotices();
+  async function deleteClassNotice(id) {
+    const list = await readClassNotices();
     const next = list.filter((item) => item.id !== id);
     if (next.length === list.length) return false;
-    saveClassNotices(next);
+    await saveClassNoticesRemote(next);
+    saveClassNoticesLocal(next);
     return true;
   }
 
@@ -207,19 +259,29 @@
       classNoticeManager.style.display = canManageClassNotice ? "block" : "none";
     }
 
-    function refreshClassNoticeList() {
+    async function refreshClassNoticeList() {
       if (!classNoticeList) return;
-      renderClassNoticeList(classNoticeList, readClassNotices(), canManageClassNotice, (id) => {
+      const notices = await readClassNotices();
+      renderClassNoticeList(classNoticeList, notices, canManageClassNotice, async (id) => {
         if (!canManageClassNotice) return;
         if (!window.confirm("이 공지사항을 삭제할까요?")) return;
-        const ok = deleteClassNotice(id);
+        let ok = false;
+        try {
+          ok = await deleteClassNotice(id);
+        } catch (_error) {
+          classNoticeMessage.textContent = "공지사항 삭제에 실패했습니다.";
+        }
         if (ok) refreshClassNoticeList();
       });
     }
 
-    refreshClassNoticeList();
+    refreshClassNoticeList().catch(() => {
+      if (classNoticeList) {
+        classNoticeList.textContent = "학급 공지사항을 불러오지 못했습니다.";
+      }
+    });
 
-    classNoticeForm?.addEventListener("submit", (event) => {
+    classNoticeForm?.addEventListener("submit", async (event) => {
       event.preventDefault();
       if (!canManageClassNotice) return;
 
@@ -230,14 +292,18 @@
         return;
       }
 
-      createClassNotice({
-        title,
-        content,
-        author: session.name,
-      });
-      classNoticeForm.reset();
-      classNoticeMessage.textContent = "학급 공지사항이 등록되었습니다.";
-      refreshClassNoticeList();
+      try {
+        await createClassNotice({
+          title,
+          content,
+          author: session.name,
+        });
+        classNoticeForm.reset();
+        classNoticeMessage.textContent = "학급 공지사항이 등록되었습니다.";
+        await refreshClassNoticeList();
+      } catch (_error) {
+        classNoticeMessage.textContent = "학급 공지사항 등록에 실패했습니다.";
+      }
     });
 
     form?.addEventListener("submit", async (event) => {
