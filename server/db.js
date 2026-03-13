@@ -5,7 +5,9 @@ const path = require("path");
 const sqlite3 = require("sqlite3");
 const { open } = require("sqlite");
 
-const DB_FILE = process.env.DB_FILE || path.resolve(__dirname, "..", "data", "portal.db");
+// Render 같은 환경에서는 /opt/render/project/src가 read-only일 수 있으므로
+// 기본 경로를 /tmp로 둔다. 영구 저장은 DB_FILE을 디스크 마운트 경로로 지정해야 한다.
+const DB_FILE = process.env.DB_FILE || "/tmp/portal.db";
 
 let dbPromise = null;
 
@@ -36,4 +38,4 @@ function getDb() {
   return dbPromise;
 }
 
-module.exports = { getDb };
+module.exports = { getDb, DB_FILE };

@@ -5,7 +5,7 @@ const crypto = require("crypto");
 const express = require("express");
 const cors = require("cors");
 
-const { getDb } = require("./db");
+const { getDb, DB_FILE } = require("./db");
 
 const app = express();
 
@@ -29,7 +29,7 @@ function getRole(req) {
 }
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true });
+  res.json({ ok: true, dbFile: DB_FILE });
 });
 
 app.get("/api/class-notices", async (_req, res, next) => {
