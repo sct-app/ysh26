@@ -2,6 +2,7 @@
 
 (function initAppModule() {
   const SUGGESTIONS_KEY = "ysh26_suggestions";
+  const CLASS_NOTICES_KEY = "ysh26_class_notices";
   const MEAL_API_BASE = "https://open.neis.go.kr/hub/mealServiceDietInfo";
   const MEAL_API_KEY = "24c8cc27be96460fa3a0f648dc6d0af5";
 
@@ -105,11 +106,82 @@
     return true;
   }
 
+  function readClassNotices() {
+    const raw = localStorage.getItem(CLASS_NOTICES_KEY);
+    if (!raw) return [];
+    try {
+      const list = JSON.parse(raw);
+      return Array.isArray(list) ? list : [];
+    } catch (error) {
+      localStorage.removeItem(CLASS_NOTICES_KEY);
+      return [];
+    }
+  }
+
+  function saveClassNotices(list) {
+    localStorage.setItem(CLASS_NOTICES_KEY, JSON.stringify(list));
+  }
+
+  function createClassNotice({ title, content, author }) {
+    const item = {
+      id: crypto.randomUUID(),
+      title: String(title || "").trim(),
+      content: String(content || "").trim(),
+      author: String(author || "").trim(),
+      createdAt: new Date().toISOString(),
+    };
+    const list = readClassNotices();
+    list.unshift(item);
+    saveClassNotices(list);
+    return item;
+  }
+
+  function deleteClassNotice(id) {
+    const list = readClassNotices();
+    const next = list.filter((item) => item.id !== id);
+    if (next.length === list.length) return false;
+    saveClassNotices(next);
+    return true;
+  }
+
   function makeEl(tag, className, text) {
     const el = document.createElement(tag);
     if (className) el.className = className;
     if (text !== undefined) el.textContent = text;
     return el;
+  }
+
+  function renderClassNoticeList(container, notices, canManage, onDelete) {
+    container.innerHTML = "";
+    if (!notices.length) {
+      container.textContent = "등록된 학급 공지사항이 없습니다.";
+      return;
+    }
+
+    notices.forEach((item) => {
+      const wrapper = makeEl("article", "suggestion-card");
+      wrapper.appendChild(makeEl("h4", "", item.title || "(제목 없음)"));
+      wrapper.appendChild(makeEl("p", "suggestion-content", item.content || "(내용 없음)"));
+      wrapper.appendChild(
+        makeEl(
+          "p",
+          "suggestion-meta",
+          `등록: ${new Date(item.createdAt).toLocaleString("ko-KR")} / 작성자: ${item.author || "-"}`
+        )
+      );
+
+      if (canManage) {
+        const actions = makeEl("div", "card-actions");
+        const delBtn = makeEl("button", "btn danger", "삭제");
+        delBtn.addEventListener("click", () => {
+          onDelete(item.id);
+        });
+        actions.appendChild(delBtn);
+        wrapper.appendChild(actions);
+      }
+
+      container.appendChild(wrapper);
+    });
   }
 
   function initMainPage() {
@@ -121,8 +193,52 @@
     const schoolInput = document.getElementById("school-code");
     const form = document.getElementById("meal-form");
     const result = document.getElementById("meal-result");
+    const classNoticeList = document.getElementById("class-notice-list");
+    const classNoticeManager = document.getElementById("class-notice-manager");
+    const classNoticeForm = document.getElementById("class-notice-form");
+    const classNoticeTitle = document.getElementById("class-notice-title");
+    const classNoticeContent = document.getElementById("class-notice-content");
+    const classNoticeMessage = document.getElementById("class-notice-message");
 
     if (dateInput) dateInput.value = getToday();
+
+    const canManageClassNotice = window.Auth.canAccess(session.role, "B");
+    if (classNoticeManager) {
+      classNoticeManager.style.display = canManageClassNotice ? "block" : "none";
+    }
+
+    function refreshClassNoticeList() {
+      if (!classNoticeList) return;
+      renderClassNoticeList(classNoticeList, readClassNotices(), canManageClassNotice, (id) => {
+        if (!canManageClassNotice) return;
+        if (!window.confirm("이 공지사항을 삭제할까요?")) return;
+        const ok = deleteClassNotice(id);
+        if (ok) refreshClassNoticeList();
+      });
+    }
+
+    refreshClassNoticeList();
+
+    classNoticeForm?.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (!canManageClassNotice) return;
+
+      const title = String(classNoticeTitle?.value || "").trim();
+      const content = String(classNoticeContent?.value || "").trim();
+      if (!title || !content) {
+        classNoticeMessage.textContent = "제목과 내용을 모두 입력해주세요.";
+        return;
+      }
+
+      createClassNotice({
+        title,
+        content,
+        author: session.name,
+      });
+      classNoticeForm.reset();
+      classNoticeMessage.textContent = "학급 공지사항이 등록되었습니다.";
+      refreshClassNoticeList();
+    });
 
     form?.addEventListener("submit", async (event) => {
       event.preventDefault();
