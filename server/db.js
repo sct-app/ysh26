@@ -1,18 +1,29 @@
 "use strict";
 
 const fs = require("fs/promises");
-const path = require("path");
 const sqlite3 = require("sqlite3");
 const { open } = require("sqlite");
+const { Pool } = require("pg");
 
-// Render 같은 환경에서는 /opt/render/project/src가 read-only일 수 있으므로
-// 기본 경로를 /tmp로 둔다. 영구 저장은 DB_FILE을 디스크 마운트 경로로 지정해야 한다.
+const DATABASE_URL = String(process.env.DATABASE_URL || "").trim();
 const DB_FILE = process.env.DB_FILE || "/tmp/portal.db";
 
-let dbPromise = null;
+function isLocalDbUrl(connectionString) {
+  try {
+    const url = new URL(connectionString);
+    return ["localhost", "127.0.0.1", "::1"].includes(url.hostname);
+  } catch (_error) {
+    return false;
+  }
+}
 
-async function initDb() {
-  await fs.mkdir(path.dirname(DB_FILE), { recursive: true });
+const DB_KIND = DATABASE_URL ? "postgres" : "sqlite";
+
+let sqlitePromise = null;
+let pgPool = null;
+
+async function initSqlite() {
+  await fs.mkdir("/tmp", { recursive: true });
   const db = await open({
     filename: DB_FILE,
     driver: sqlite3.Database,
@@ -31,11 +42,104 @@ async function initDb() {
   return db;
 }
 
-function getDb() {
-  if (!dbPromise) {
-    dbPromise = initDb();
+function getSqlite() {
+  if (!sqlitePromise) {
+    sqlitePromise = initSqlite();
   }
-  return dbPromise;
+  return sqlitePromise;
 }
 
-module.exports = { getDb, DB_FILE };
+function getPgPool() {
+  if (!pgPool) {
+    const sslEnv = String(process.env.PG_SSL || "").trim().toLowerCase();
+    const useSsl = sslEnv ? sslEnv === "true" : !isLocalDbUrl(DATABASE_URL);
+    pgPool = new Pool({
+      connectionString: DATABASE_URL,
+      ssl: useSsl ? { rejectUnauthorized: false } : false,
+    });
+  }
+  return pgPool;
+}
+
+let pgInitPromise = null;
+async function initPostgres() {
+  if (pgInitPromise) return pgInitPromise;
+  pgInitPromise = (async () => {
+    const pool = getPgPool();
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS class_notices (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        content TEXT NOT NULL,
+        author TEXT NOT NULL,
+        created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    `);
+  })();
+  return pgInitPromise;
+}
+
+async function listClassNotices() {
+  if (DB_KIND === "postgres") {
+    await initPostgres();
+    const pool = getPgPool();
+    const result = await pool.query(
+      `SELECT id, title, content, author, created_at AS "createdAt"
+       FROM class_notices
+       ORDER BY created_at DESC`
+    );
+    return result.rows;
+  }
+
+  const db = await getSqlite();
+  return db.all(
+    `SELECT id, title, content, author, created_at AS createdAt
+     FROM class_notices
+     ORDER BY datetime(created_at) DESC`
+  );
+}
+
+async function createClassNotice(item) {
+  if (DB_KIND === "postgres") {
+    await initPostgres();
+    const pool = getPgPool();
+    await pool.query(
+      `INSERT INTO class_notices (id, title, content, author, created_at)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [item.id, item.title, item.content, item.author, item.createdAt]
+    );
+    return;
+  }
+
+  const db = await getSqlite();
+  await db.run(
+    `INSERT INTO class_notices (id, title, content, author, created_at)
+     VALUES (?, ?, ?, ?, ?)`,
+    [item.id, item.title, item.content, item.author, item.createdAt]
+  );
+}
+
+async function deleteClassNotice(id) {
+  if (DB_KIND === "postgres") {
+    await initPostgres();
+    const pool = getPgPool();
+    const result = await pool.query(`DELETE FROM class_notices WHERE id = $1`, [id]);
+    return result.rowCount > 0;
+  }
+
+  const db = await getSqlite();
+  const result = await db.run(`DELETE FROM class_notices WHERE id = ?`, [id]);
+  return Boolean(result.changes);
+}
+
+const DB_INFO = {
+  kind: DB_KIND,
+  target: DB_KIND === "postgres" ? "DATABASE_URL" : DB_FILE,
+};
+
+module.exports = {
+  DB_INFO,
+  listClassNotices,
+  createClassNotice,
+  deleteClassNotice,
+};
