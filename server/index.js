@@ -5,7 +5,7 @@ const crypto = require("crypto");
 const express = require("express");
 const cors = require("cors");
 
-const { getDb } = require("./db");
+const { DB_INFO, listClassNotices, createClassNotice, deleteClassNotice } = require("./db");
 
 const app = express();
 
@@ -29,17 +29,12 @@ function getRole(req) {
 }
 
 app.get("/api/health", (_req, res) => {
-  res.json({ ok: true });
+  res.json({ ok: true, db: DB_INFO });
 });
 
 app.get("/api/class-notices", async (_req, res, next) => {
   try {
-    const db = await getDb();
-    const rows = await db.all(
-      `SELECT id, title, content, author, created_at AS createdAt
-       FROM class_notices
-       ORDER BY datetime(created_at) DESC`
-    );
+    const rows = await listClassNotices();
     res.json({ notices: rows });
   } catch (error) {
     next(error);
@@ -61,7 +56,6 @@ app.post("/api/class-notices", async (req, res, next) => {
       return res.status(400).json({ message: "제목과 내용을 입력해주세요." });
     }
 
-    const db = await getDb();
     const item = {
       id: crypto.randomUUID(),
       title,
@@ -70,11 +64,7 @@ app.post("/api/class-notices", async (req, res, next) => {
       createdAt: new Date().toISOString(),
     };
 
-    await db.run(
-      `INSERT INTO class_notices (id, title, content, author, created_at)
-       VALUES (?, ?, ?, ?, ?)`,
-      [item.id, item.title, item.content, item.author, item.createdAt]
-    );
+    await createClassNotice(item);
 
     return res.status(201).json({ notice: item });
   } catch (error) {
@@ -94,9 +84,8 @@ app.delete("/api/class-notices/:id", async (req, res, next) => {
       return res.status(400).json({ message: "공지 ID가 필요합니다." });
     }
 
-    const db = await getDb();
-    const result = await db.run(`DELETE FROM class_notices WHERE id = ?`, [id]);
-    if (!result.changes) {
+    const deleted = await deleteClassNotice(id);
+    if (!deleted) {
       return res.status(404).json({ message: "공지사항을 찾을 수 없습니다." });
     }
 

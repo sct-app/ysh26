@@ -133,7 +133,8 @@
       cache: "no-store",
     });
     if (!response.ok) {
-      throw new Error("학급 공지사항을 불러오지 못했습니다.");
+      const payload = await response.json().catch(() => null);
+      throw new Error(payload?.message || "학급 공지사항을 불러오지 못했습니다.");
     }
     const payload = await response.json();
     const notices = Array.isArray(payload?.notices) ? payload.notices : [];
