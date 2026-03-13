@@ -3,7 +3,7 @@
 (function initAppModule() {
   const SUGGESTIONS_KEY = "ysh26_suggestions";
   const CLASS_NOTICES_KEY = "ysh26_class_notices";
-  const CLASS_NOTICES_REMOTE_URL = "https://mantledb.sh/v2/ysh26-2-5/class-notices";
+  const NOTICE_API_BASE = String(window.APP_CONFIG?.API_BASE || "").replace(/\/+$/, "");
   const MEAL_API_BASE = "https://open.neis.go.kr/hub/mealServiceDietInfo";
   const MEAL_API_KEY = "24c8cc27be96460fa3a0f648dc6d0af5";
 
@@ -123,77 +123,54 @@
     localStorage.setItem(CLASS_NOTICES_KEY, JSON.stringify(list));
   }
 
-  async function readClassNoticesRemote() {
-    const response = await fetch(`${CLASS_NOTICES_REMOTE_URL}?ts=${Date.now()}`, {
+  function classNoticeApiUrl(path) {
+    return `${NOTICE_API_BASE}${path}`;
+  }
+
+  async function readClassNotices() {
+    const response = await fetch(classNoticeApiUrl("/api/class-notices"), {
+      method: "GET",
       cache: "no-store",
     });
     if (!response.ok) {
       throw new Error("학급 공지사항을 불러오지 못했습니다.");
     }
-
     const payload = await response.json();
-    const items = payload?.entry?.items;
-    return Array.isArray(items) ? items : [];
+    const notices = Array.isArray(payload?.notices) ? payload.notices : [];
+    saveClassNoticesLocal(notices);
+    return notices;
   }
 
-  async function saveClassNoticesRemote(list) {
-    const response = await fetch(CLASS_NOTICES_REMOTE_URL, {
+  async function createClassNotice({ title, content, author, role }) {
+    const response = await fetch(classNoticeApiUrl("/api/class-notices"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        "X-User-Role": String(role || ""),
       },
       body: JSON.stringify({
-        entry: {
-          items: list,
-        },
+        title: String(title || "").trim(),
+        content: String(content || "").trim(),
+        author: String(author || "").trim(),
       }),
     });
-
     if (!response.ok) {
-      throw new Error("학급 공지사항 저장에 실패했습니다.");
+      const payload = await response.json().catch(() => null);
+      throw new Error(payload?.message || "학급 공지사항 등록에 실패했습니다.");
     }
   }
 
-  async function readClassNotices() {
-    try {
-      const remote = await readClassNoticesRemote();
-      saveClassNoticesLocal(remote);
-      if (!remote.length) {
-        const local = readClassNoticesLocal();
-        if (local.length) {
-          await saveClassNoticesRemote(local);
-          return local;
-        }
-      }
-      return remote;
-    } catch (_error) {
-      return readClassNoticesLocal();
+  async function deleteClassNotice(id, role) {
+    const response = await fetch(classNoticeApiUrl(`/api/class-notices/${encodeURIComponent(id)}`), {
+      method: "DELETE",
+      headers: {
+        "X-User-Role": String(role || ""),
+      },
+    });
+    if (!response.ok) {
+      const payload = await response.json().catch(() => null);
+      throw new Error(payload?.message || "학급 공지사항 삭제에 실패했습니다.");
     }
-  }
-
-  async function createClassNotice({ title, content, author }) {
-    const item = {
-      id: crypto.randomUUID(),
-      title: String(title || "").trim(),
-      content: String(content || "").trim(),
-      author: String(author || "").trim(),
-      createdAt: new Date().toISOString(),
-    };
-
-    const list = await readClassNotices();
-    list.unshift(item);
-    await saveClassNoticesRemote(list);
-    saveClassNoticesLocal(list);
-    return item;
-  }
-
-  async function deleteClassNotice(id) {
-    const list = await readClassNotices();
-    const next = list.filter((item) => item.id !== id);
-    if (next.length === list.length) return false;
-    await saveClassNoticesRemote(next);
-    saveClassNoticesLocal(next);
-    return true;
   }
 
   function makeEl(tag, className, text) {
@@ -265,13 +242,12 @@
       renderClassNoticeList(classNoticeList, notices, canManageClassNotice, async (id) => {
         if (!canManageClassNotice) return;
         if (!window.confirm("이 공지사항을 삭제할까요?")) return;
-        let ok = false;
         try {
-          ok = await deleteClassNotice(id);
+          await deleteClassNotice(id, session.role);
+          await refreshClassNoticeList();
         } catch (_error) {
           classNoticeMessage.textContent = "공지사항 삭제에 실패했습니다.";
         }
-        if (ok) refreshClassNoticeList();
       });
     }
 
@@ -297,6 +273,7 @@
           title,
           content,
           author: session.name,
+          role: session.role,
         });
         classNoticeForm.reset();
         classNoticeMessage.textContent = "학급 공지사항이 등록되었습니다.";
